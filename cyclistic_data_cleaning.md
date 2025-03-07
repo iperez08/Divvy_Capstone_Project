@@ -43,6 +43,23 @@ SELECT
 FROM `stellar-utility-451121-f7.cyclistic.past_year_trips`
 ```
 
+Explore Duplicate Data
+```sql
+SELECT
+*
+FROM `stellar-utility-451121-f7.cyclistic.partitioned_all_past_trips`
+WHERE ride_id IN
+  (SELECT 
+  ride_id
+  FROM `stellar-utility-451121-f7.cyclistic.partitioned_all_past_trips`
+  GROUP BY
+    ride_id
+  HAVING
+    COUNT(ride_id) > 1)
+ORDER BY
+  ride_id
+```
+
 ## Clean Data
 Create new table with cleaned data that is partitioned by month
 1. selected specific columns from merged table
