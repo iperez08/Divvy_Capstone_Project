@@ -14,6 +14,27 @@ ORDER BY
   riders
 ```
 
+## Vehicle Type Usage
+```sql
+SELECT
+*
+FROM (
+  SELECT
+COALESCE(member_casual,'total') AS riders,
+COALESCE(rideable_type,'total') AS bike_type,
+COUNT(*) AS trip_count
+FROM `stellar-utility-451121-f7.cyclistic.partitioned_all_past_trips`
+GROUP BY GROUPING SETS ((member_casual,rideable_type),(rideable_type))
+)
+PIVOT 
+  (
+    SUM(trip_count) FOR bike_type IN (
+      'classic_bike', 'electric_bike', 'electric_scooter'
+    )
+  )
+ORDER BY riders
+```
+
 ## Trends Across Time - Total Rides 
 
 Total Trips by Month by Rider
