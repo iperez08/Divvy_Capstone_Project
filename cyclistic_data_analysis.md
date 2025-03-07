@@ -16,7 +16,7 @@ ORDER BY
 
 ## Trends Across Time - Total Rides 
 
-Total Rides by Month by Rider
+Total Trips by Month by Rider
 ```sql
 SELECT *
 FROM (
@@ -41,7 +41,7 @@ ORDER BY
   riders
 ```
 
-Total Rides by Day of Week by Rider
+Total Trips by Day of Week by Rider
 ```sql
 SELECT *
 FROM (
@@ -62,7 +62,7 @@ ORDER BY
   riders;
 ```
 
-Total Rides by Hour by Rider
+Total Trips by Hour by Rider
 ```sql
 SELECT *
 FROM (
