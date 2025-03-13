@@ -14,21 +14,62 @@ ORDER BY
   riders
 ```
 
-## Vehicle Type Usage
+Total Trips by Rider
+```sql
+SELECT 
+member_casual,
+COUNT(*) AS total_trips
+FROM `stellar-utility-451121-f7.cyclistic.partitioned_all_past_trips`
+GROUP BY
+  member_casual
+```
+
+Average Length of Trip by Rider
+```sql
+SELECT
+  member_casual,
+  ROUND(AVG(trip_duration) / 60) AS avg_trip_duration
+FROM `stellar-utility-451121-f7.cyclistic.partitioned_all_past_trips`
+GROUP BY
+  member_casual
+```
+
+Total Trips by Vehicle by Rider
 ```sql
 SELECT
 *
 FROM (
   SELECT
-COALESCE(member_casual,'total') AS riders,
-COALESCE(rideable_type,'total') AS bike_type,
-COUNT(*) AS trip_count
-FROM `stellar-utility-451121-f7.cyclistic.partitioned_all_past_trips`
-GROUP BY GROUPING SETS ((member_casual,rideable_type),(rideable_type))
+    COALESCE(member_casual,'total') AS riders,
+    rideable_type AS bike_type,
+  COUNT(*) AS trip_count
+  FROM `stellar-utility-451121-f7.cyclistic.partitioned_all_past_trips`
+  GROUP BY GROUPING SETS ((member_casual,rideable_type),(rideable_type))
 )
 PIVOT 
   (
     SUM(trip_count) FOR bike_type IN (
+      'classic_bike', 'electric_bike', 'electric_scooter'
+    )
+  )
+ORDER BY riders
+```
+
+Average Length of Trip by Vehicle by Rider
+```sql
+SELECT
+*
+FROM (
+  SELECT
+    COALESCE(member_casual,'total') AS riders,
+    rideable_type AS bike_type,
+    AVG(trip_duration) AS avg_trip_duration
+  FROM `stellar-utility-451121-f7.cyclistic.partitioned_all_past_trips`
+  GROUP BY GROUPING SETS ((member_casual,rideable_type),(rideable_type))
+)
+PIVOT 
+  (
+    SUM(ROUND(avg_trip_duration / 60)) FOR bike_type IN (
       'classic_bike', 'electric_bike', 'electric_scooter'
     )
   )
