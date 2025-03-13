@@ -124,3 +124,15 @@ def query_bigquery(dataset_id, table_id):
 
 query_bigquery('cyclistic', 'station_information')
 ```
+
+3. Extract Station Information from JSON Table
+```python
+SELECT
+  stations.name AS station_name,
+  stations.lat AS station_lat,
+  stations.lon AS station_lon
+FROM 
+  `stellar-utility-451121-f7.cyclistic.station_information`,
+-- Use UNNEST since stations is an array of objects
+  UNNEST(data.stations) AS stations
+```
