@@ -60,66 +60,52 @@ ORDER BY
   ride_id
 ```
 
-## Clean Data
-Create new table with cleaned data that is partitioned by month
-1. selected specific columns from merged table
-2. created new columns: day_of_week, day, month, year, hour, season, and time_of_day
-3. subquery that creates a trip_duration column in seconds, removes rows with trip_duration of 0 seconds, and removes rows with nulls in start_station_name or end_station_name columns
-
+## Clean & Transform Data
+1. Creates a trip_duration column in seconds and removes rows with nulls in start_station_name or end_station_name columns
 ```sql
-CREATE OR REPLACE TABLE `stellar-utility-451121-f7.cyclistic.partitioned_all_past_trips`
-PARTITION BY month AS
-SELECT
+CREATE OR REPLACE TABLE `stellar-utility-451121-f7.cyclistic.cleaned_past_trips` AS
+SELECT 
   ride_id,
   rideable_type, 
   started_at,
   ended_at,
   start_station_name,
   end_station_name,
-  trip_duration,
-  -- create new columns
+  TIMESTAMP_DIFF(ended_at, started_at, SECOND) AS trip_duration,
+  member_casual
+FROM `stellar-utility-451121-f7.cyclistic.past_year_trips`
+WHERE start_station_name IS NOT NULL 
+  AND end_station_name IS NOT NULL;
+```
+
+2. Created new columns: day_of_week, day, month, year, hour, season, and time_of_day and removed trip_durations that are 0 seconds or have a negative duration
+```sql
+CREATE OR REPLACE TABLE `stellar-utility-451121-f7.cyclistic.cleaned_all_past_trips`
+SELECT
+  *,
   FORMAT_TIMESTAMP('%A', started_at) AS day_of_week,
   EXTRACT(DAY FROM started_at) AS day,
   DATE_TRUNC(DATE(started_at), MONTH) AS month,
   EXTRACT(YEAR FROM started_at) AS year,
   EXTRACT(HOUR FROM started_at) AS hour,
-  CASE 
-      WHEN EXTRACT(MONTH FROM started_at) IN (12, 1, 2) THEN 'Winter'
-      WHEN EXTRACT(MONTH FROM started_at) IN (3, 4, 5) THEN 'Spring'
-      WHEN EXTRACT(MONTH FROM started_at) IN (6, 7, 8) THEN 'Summer'
-      WHEN EXTRACT(MONTH FROM started_at) IN (9, 10, 11) THEN 'Fall'
+  CASE EXTRACT(MONTH FROM started_at)
+    WHEN 12, 1, 2 THEN 'Winter'
+    WHEN 3, 4, 5 THEN 'Spring'
+    WHEN 6, 7, 8 THEN 'Summer'
+    ELSE 'Fall'
   END AS season,
   CASE 
-      WHEN EXTRACT(HOUR FROM started_at) BETWEEN 6 AND 10 THEN 'Morning'
-      WHEN EXTRACT(HOUR FROM started_at) BETWEEN 10 AND 14 THEN 'Midday'
-      WHEN EXTRACT(HOUR FROM started_at) BETWEEN 14 AND 18 THEN 'Afternoon'
-      WHEN EXTRACT(HOUR FROM started_at) BETWEEN 18 AND 22 THEN 'Evening'
-      ELSE 'Night'
-  END AS time_of_day,
-  member_casual
-FROM
--- subquery
-  (SELECT
-  *,
--- create trip_duration column by using TIMESTAMP_DIFF function and
--- adjust for trips that start on one day and end on the next day
-  CASE
-    WHEN TIMESTAMP_DIFF(ended_at, started_at,SECOND) < 0
-    THEN TIMESTAMP_DIFF(ended_at, started_at, SECOND) + 86400
-    ELSE TIMESTAMP_DIFF(ended_at, started_at, SECOND)
-    END AS trip_duration
-  FROM `stellar-utility-451121-f7.cyclistic.past_year_trips`
--- removes rows where start_station_name or end_station_name are null
-  WHERE
-  start_station_name IS NOT NULL AND
-  end_station_name IS NOT NULL
-  )
--- remove rows where trip_duration is 0 seconds.
-WHERE
-  trip_duration <> 0
+    WHEN EXTRACT(HOUR FROM started_at) BETWEEN 6 AND 10 THEN 'Morning'
+    WHEN EXTRACT(HOUR FROM started_at) BETWEEN 10 AND 14 THEN 'Midday'
+    WHEN EXTRACT(HOUR FROM started_at) BETWEEN 14 AND 18 THEN 'Afternoon'
+    WHEN EXTRACT(HOUR FROM started_at) BETWEEN 18 AND 22 THEN 'Evening'
+    ELSE 'Night'
+  END AS time_of_day
+FROM `stellar-utility-451121-f7.cyclistic.cleaned_past_trips`
+WHERE trip_duration > 0;
 ```
 
-Remove All Instances of Duplicates
+3. Remove all instances of duplicates and partitions table by month
 ```sql
 CREATE OR REPLACE TABLE `stellar-utility-451121-f7.cyclistic.partitioned_all_past_trips`
 PARTITION BY month AS
