@@ -180,4 +180,70 @@ ORDER BY
   riders
 ```
 
-## 
+## Trends Across Stations
+
+Top Start Stations by Rider
+```sql
+WITH popular_start_station AS (
+  SELECT
+    COALESCE(member_casual, 'total') AS riders,
+    start_station_name,
+    COUNT(*) AS station_count,
+  FROM `stellar-utility-451121-f7.cyclistic.partitioned_all_past_trips`
+  GROUP BY 
+    GROUPING SETS ((member_casual, start_station_name), (start_station_name))
+)
+SELECT
+  *
+FROM (
+  SELECT
+    *,
+    ROW_NUMBER() OVER (PARTITION BY riders ORDER BY station_count DESC) AS row_num
+  FROM popular_start_station
+)
+WHERE row_num IN (1, 2, 3, 4, 5)
+```
+
+Top End Stations by Rider
+```sql
+WITH popular_end_station AS (
+  SELECT
+    COALESCE(member_casual, 'total') AS riders,
+    end_station_name,
+    COUNT(*) AS station_count,
+  FROM `stellar-utility-451121-f7.cyclistic.partitioned_all_past_trips`
+  GROUP BY 
+    GROUPING SETS ((member_casual, end_station_name), (end_station_name))
+)
+SELECT
+  *
+FROM (
+  SELECT
+    *,
+    ROW_NUMBER() OVER (PARTITION BY riders ORDER BY station_count DESC) AS row_num
+  FROM popular_end_station
+)
+WHERE row_num IN (1, 2, 3, 4, 5)
+```
+
+Top Routes by Rider
+```sql
+WITH popular_routes AS (
+  SELECT
+    COALESCE(member_casual, 'total') AS riders,
+    CONCAT(start_station_name, ' to ', end_station_name) AS route,
+    COUNT(*) AS route_count,
+  FROM `stellar-utility-451121-f7.cyclistic.tableau_all_past_trips`
+  GROUP BY 
+    GROUPING SETS ((member_casual, route),(route))
+)
+SELECT
+  *
+FROM (
+  SELECT
+    *,
+    ROW_NUMBER() OVER (PARTITION BY riders ORDER BY route_count DESC) AS row_num
+  FROM popular_routes
+)
+WHERE row_num IN (1, 2, 3, 4, 5)
+```
